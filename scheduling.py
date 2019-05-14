@@ -1,4 +1,23 @@
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+plt.style.use('seaborn-whitegrid')
+tick_spacing = 1
+fig, ax = plt.subplots(1,1)
+ax.xaxis.set_major_locator(ticker.MultipleLocator(tick_spacing))
+ax.yaxis.set_major_locator(ticker.MultipleLocator(tick_spacing))
 
+def draw(x,y,id):
+	if id == 0:
+		color = 'blue'
+	if id == 1:
+		color = 'red'
+	if id == 2:
+		color = 'green'
+	if id == 3:
+		color = 'yellow'
+	if id ==4:
+		color = 'black'
+	ax.plot(x,y,color=color)
 
 
 #global processes, arrival_time, service_time, finish_time, avg_time, turnaround_time, processes_number,turnaround_mean, avg_mean
@@ -21,9 +40,12 @@ class Process:
 		self.p_waiting_time = 0
 		self.p_arrival_time = p_arrival_time
 		self.p_service_time = p_service_time
+		self.p_service_time_temp = p_service_time
 		self.p_inQue = False
 		self.p_turnaround = 0
 		self.p_avg = 0.0
+		self.p_isComplete = False
+		self.p_hasArrived = False
 
 
 def use_default():
@@ -61,7 +83,7 @@ def display(arrival_time, service_time, finish_time, turnaround_time, turnaround
 	print(" %.2f" %turnaround_mean)
 	print(avg_time, end='')	
 	print(" %.2f" %avg_mean)
-
+	plt.show()
 
 
 def FCFS():
@@ -142,6 +164,9 @@ def SRT():
 				mini = process.p_service_time
 				minimum_process = process
 		timeline += 1
+		x = [timeline-1,timeline]
+		y = [process_list.index(minimum_process)+1,process_list.index(minimum_process)+1]
+		draw(x,y,process_list.index(minimum_process))
 		minimum_process.p_service_time -= 1
 		if minimum_process.p_service_time == 0: #a completed process
 			minimum_process.p_completion_time = timeline
@@ -180,52 +205,45 @@ def RR():
 	que = list()
 	p_index = 0
 	completed_processes = 0
-	current_process = process_list[0]
 	cursor = 0
 	while(completed_processes < processes_number):
-		for process in process_list: #check for arrived processes
-			if process.p_arrival_time <= timeline and process.p_inQue == False:
+		for process in process_list:
+			if process.p_arrival_time == timeline and process.p_inQue == False:
 				que.append(process)
-				print("added %d to que" %process.p_arrival_time)
 				process.p_inQue = True
-		print('current process is %d ' %current_process.p_arrival_time)
+		current_process = que[p_index]
 		timeline += 1
-		print('time is %d' %timeline)
 		quantum_counter += 1
-		current_process.p_service_time -= 1
-
-		if current_process.p_service_time == 0: #completed
+		current_process.p_service_time_temp -= 1
+		if  current_process.p_service_time_temp == 0: #process completed
 			completed_processes += 1
 			que.remove(current_process)
-			print('removed %d from que ' %current_process.p_arrival_time)
-			current_process.p_completion_time = timeline
-			p_index += 1
-			if p_index >= len(que):
+			if p_index >= len(que)-1:
 				p_index = 0
-
-			if que:
-				current_process = que[p_index]
-				print('current process is %d ' %current_process.p_arrival_time)
-				quantum_counter = 0
-
-
-		if quantum_counter >= quantum: #quantum expired
+			else:
+				p_index += 1
 			quantum_counter = 0
-			p_index += 1
-			if p_index >= len(que) :
+			current_process.p_completion_time = timeline
+			current_process.p_waiting_time = timeline - current_process.p_service_time
+			if not que:
+				break
+			current_process = que[p_index]
+			continue		
+		if quantum_counter == quantum and que: #quantum expired
+			if p_index >= len(que)-1:
 				p_index = 0
-			if que:
-				current_process = que[p_index]
-				print('current process is %d ' %current_process.p_arrival_time)
+			else:
+				p_index += 1
+			quantum_counter = 0
+			current_process = que[p_index]
 
-			#switch
 
 
 	i = 0
 	sum_turnaround = 0
 	sum_avg = 0
 	for process in process_list:
-		process.p_waiting_time = process.p_completion_time - process.p_arrival_time - process.p_service_time
+		#process.p_waiting_time = process.p_completion_time - process.p_arrival_time - process.p_service_time
 		process.p_turnaround = process.p_waiting_time + process.p_service_time
 		process.p_avg = round(float(process.p_completion_time / process.p_turnaround),2)
 		finish_time[i] = process.p_completion_time
@@ -241,9 +259,9 @@ def RR():
 def calculate():
 	# FCFS()
 	# print('-----\n\n')
-	# SPN()
-	# SRT()
-	RR()
+	#SPN()
+	SRT()
+	#RR()
 
 			
 
