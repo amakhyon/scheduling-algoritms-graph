@@ -88,53 +88,98 @@ def display(arrival_time, service_time, finish_time, turnaround_time, turnaround
 
 def FCFS():
 	global processes, arrival_time, service_time, finish_time, avg_time, turnaround_time, processes_number, turnaround_mean, avg_mean
-	sum = 0
-	finish_time.append(service_time[0])
-	for i in range(1, processes_number): # get fininsh time
-		finish_time.append(finish_time[i-1] + service_time[i])
-	for i in range(processes_number): # get turn around time 
-		t = finish_time[i] - arrival_time[i]
-		sum += t 
-		turnaround_time.append(t)
-	turnaround_mean = float(sum/processes_number)
-	sum = 0
-	for i in range(processes_number): # get average time
-		t = round(float(turnaround_time[i] / service_time[i]),2)
-		sum+= t
-		avg_time.append(t)
-	avg_mean = float(sum / processes_number)
+	finish_time = [0, 0, 0, 0, 0]
+	turnaround_time = [0, 0, 0, 0, 0]
+	avg_time = [0, 0, 0, 0, 0]
+	process_list = list()
+	que = list()
+	for i in range(processes_number):
+		arrival = arrival_time[i]
+		service = service_time[i]
+		process_list.append(Process(arrival, service))
+		que.insert(i, process_list[i]) #insert all process in que in a FIFO manner
+
+	timeline = 0
+	completed_processes = 0
+
+	for process in que:
+		for i in range(process.p_service_time):
+			x = [timeline, timeline+1]
+			y = [process_list.index(process), process_list.index(process)]
+			timeline += 1
+			draw(x, y, process_list.index(process))
+		process.p_completion_time = timeline
+
+
+	i =0
+	sum_turnaround = 0
+	sum_avg = 0
+	for process in process_list:
+		process.p_turnaround = process.p_completion_time - process.p_arrival_time
+		process.p_avg = round(float(process.p_completion_time / process.p_turnaround),2)
+		finish_time[i] = process.p_completion_time
+		turnaround_time[i] = process.p_turnaround
+		avg_time[i] = round(float(turnaround_time[i] /service_time[i] ),2)
+		sum_turnaround += turnaround_time[i]
+		sum_avg += avg_time[i]
+		i += 1
+	print('\n FCFS \n')
 	display(arrival_time, service_time, finish_time, turnaround_time, turnaround_mean, avg_time, avg_mean)
 
 def SPN():
 	global processes, arrival_time, service_time, finish_time, avg_time, turnaround_time, processes_number, turnaround_mean, avg_mean
-	finish_time = []
-	avg_time = []
-	turnaround_time = []
+	finish_time = [0, 0, 0, 0, 0]
+	turnaround_time = [0, 0, 0, 0, 0]
+	avg_time = [0, 0, 0, 0, 0]
+	process_list = list()
+	que = list()
 	for i in range(processes_number):
-		finish_time.append(0)
+		arrival = arrival_time[i]
+		service = service_time[i]
+		process_list.append(Process(arrival, service))
 	timeline = 0
-	temp_arrival = arrival_time[:]
-	for i in range(processes_number): #get finish time
-		min_arrival = []
-		for j in range(len(temp_arrival)):
-			if temp_arrival[j] <= timeline: # get all arrived processes
-				min_arrival.append(service_time[arrival_time.index(temp_arrival[j])])
-		chosen_process = min(min_arrival)
-		timeline+= chosen_process	 #get the min of all arived processes and add to timeline
-		temp_arrival.remove(arrival_time[service_time.index(chosen_process)])
-		finish_time[service_time.index(chosen_process)] = timeline
-	sum = 0
-	for i in range(processes_number): # get turn around time 
-		t = finish_time[i] - arrival_time[i]
-		sum += t 
-		turnaround_time.append(t)
-	turnaround_mean = float(sum/processes_number)
-	sum = 0
-	for i in range(processes_number): # get average time
-		t = round(float(turnaround_time[i] / service_time[i]),2)
-		sum+= t
-		avg_time.append(t)
-	avg_mean = float(sum / processes_number)
+	completed_processes = 0
+	que.append(process_list[0])
+	process_list[0].p_inQue = True
+	while(completed_processes < processes_number):
+
+		minimum_process = que[0]
+		for process in que: #get minimum prcoss
+			if process.p_service_time < minimum_process.p_service_time and process.p_hasArrived == True:
+				minimum_process = process
+				min = process.p_service_time
+		for t in range(minimum_process.p_service_time):
+			x = [timeline,timeline+1]
+			y = [process_list.index(minimum_process)+1,process_list.index(minimum_process)+1]
+			draw(x,y,process_list.index(minimum_process))
+			for process in process_list: #check for arrived processes
+				if process.p_arrival_time <= timeline and process.p_inQue == False:
+					que.append(process)
+					process.p_hasArrived = True
+					process.p_inQue = True
+			timeline += 1
+
+		que.remove(minimum_process)
+		minimum_process.p_completion_time = timeline
+		completed_processes += 1
+
+
+
+
+
+	i =0
+	sum_turnaround = 0
+	sum_avg = 0
+	for process in process_list:
+		process.p_turnaround = process.p_completion_time - process.p_arrival_time
+		process.p_avg = round(float(process.p_completion_time / process.p_turnaround),2)
+		finish_time[i] = process.p_completion_time
+		turnaround_time[i] = process.p_turnaround
+		avg_time[i] = round(float(turnaround_time[i] /service_time[i] ),2)
+		sum_turnaround += turnaround_time[i]
+		sum_avg += avg_time[i]
+		i += 1
+	print('\n SPN \n')
 	display(arrival_time, service_time, finish_time, turnaround_time, turnaround_mean, avg_time, avg_mean)
 
 def SRT():
@@ -190,7 +235,7 @@ def SRT():
 	display(arrival_time, service_time, finish_time, turnaround_time, turnaround_mean, avg_time, avg_mean)
 
 def RR():
-	quantum = 4
+	quantum = 1
 	quantum_counter =0
 	global processes, arrival_time, service_time, finish_time, avg_time, turnaround_time, processes_number, turnaround_mean, avg_mean
 	finish_time = [0, 0, 0, 0, 0]
@@ -201,41 +246,70 @@ def RR():
 		arrival = arrival_time[i]
 		service = service_time[i]
 		process_list.append(Process(arrival, service))
-	timeline = 0
+	timeline =  0
 	que = list()
 	p_index = 0
 	completed_processes = 0
-	cursor = 0
+	que.append(process_list[0])
+	process_list[0].p_inQue = True
+	current_process = que[0]
+	def switch(index):
+		if que:
+			if len(que) <= index +1:
+				index = 0
+				return que[index]
+			else:
+				index += 1
+				print('length of que is %d index is %d' %(len(que), index))
+				return que[index]
+		else :
+			return que[index]
 	while(completed_processes < processes_number):
-		for process in process_list:
-			if process.p_arrival_time == timeline and process.p_inQue == False:
-				que.append(process)
-				process.p_inQue = True
-		current_process = que[p_index]
+
+		if current_process.p_service_time_temp == 0: #process completed
+			for process in process_list: #check for arrived processes
+				if process.p_arrival_time <= timeline and process.p_inQue == False:
+					print('added %d' %process.p_arrival_time)
+					que.append(process)
+					process.p_hasArrived = True
+					process.p_inQue = True
+			print('%d is complete, removing from que' %current_process.p_arrival_time)
+			index = que.index(current_process)
+			que.remove(current_process)
+			quantum_counter = 0
+			completed_processes += 1
+			current_process.p_completion_time = timeline
+			if que:
+				current_process = switch(index)
+
+
+		if quantum_counter == quantum: #quantum expired
+			for process in process_list: #check for arrived processes
+				if process.p_arrival_time <= timeline and process.p_inQue == False:
+					que.append(process)
+					process.p_inQue = True
+					print('added %d because quantum expired ' %process.p_arrival_time)
+			print('quantum expired')
+			if len(que) == 1:
+				quantum_counter = 0
+				print('cant switch')
+			else:
+				index = que.index(current_process)
+				current_process = switch(index)
+				print('current process is %d' %current_process.p_arrival_time)
+				quantum_counter = 0
+
+		print('time is %d' %timeline)
 		timeline += 1
 		quantum_counter += 1
 		current_process.p_service_time_temp -= 1
-		if  current_process.p_service_time_temp == 0: #process completed
-			completed_processes += 1
-			que.remove(current_process)
-			if p_index >= len(que)-1:
-				p_index = 0
-			else:
-				p_index += 1
-			quantum_counter = 0
-			current_process.p_completion_time = timeline
-			current_process.p_waiting_time = timeline - current_process.p_service_time
-			if not que:
-				break
-			current_process = que[p_index]
-			continue		
-		if quantum_counter == quantum and que: #quantum expired
-			if p_index >= len(que)-1:
-				p_index = 0
-			else:
-				p_index += 1
-			quantum_counter = 0
-			current_process = que[p_index]
+		print('remaing time is %d' %current_process.p_service_time_temp)
+		x = [timeline-1,timeline]
+		y = [process_list.index(current_process)+1,process_list.index(current_process)+1]
+		draw(x,y,process_list.index(current_process))
+
+
+				
 
 
 
@@ -243,7 +317,7 @@ def RR():
 	sum_turnaround = 0
 	sum_avg = 0
 	for process in process_list:
-		#process.p_waiting_time = process.p_completion_time - process.p_arrival_time - process.p_service_time
+		process.p_waiting_time = process.p_completion_time - process.p_arrival_time - process.p_service_time
 		process.p_turnaround = process.p_waiting_time + process.p_service_time
 		process.p_avg = round(float(process.p_completion_time / process.p_turnaround),2)
 		finish_time[i] = process.p_completion_time
@@ -256,12 +330,6 @@ def RR():
 	display(arrival_time, service_time, finish_time, turnaround_time, turnaround_mean, avg_time, avg_mean)
 
 
-def calculate():
-	# FCFS()
-	# print('-----\n\n')
-	#SPN()
-	SRT()
-	#RR()
 
 			
 
@@ -269,7 +337,10 @@ while True:
 	print('--------------------------------------')
 	print('1) use default data')
 	print('2) enter processes')
-	print('3) calculate')
+	print('3) FCFS')
+	print('4) SPN ')
+	print('5) SRT ')
+	print('6) RR ')
 	print('--------------------------------------')
 	choice = int(input('select: '))
 	if choice == 1:
@@ -277,4 +348,10 @@ while True:
 	if choice == 2:
 		enter_processes()
 	if choice == 3:
-		calculate()
+		FCFS()
+	if choice == 4:
+		SPN()
+	if choice == 5:
+		SRT()
+	if choice == 6:
+		RR()
