@@ -1,10 +1,15 @@
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+
 plt.style.use('seaborn-whitegrid')
 tick_spacing = 1
 fig, ax = plt.subplots(1,1)
+txt ="A = Blue B=red C= green D = yellow E = black"
+fig.text(.5, .05, txt, ha='center')
+
 ax.xaxis.set_major_locator(ticker.MultipleLocator(tick_spacing))
 ax.yaxis.set_major_locator(ticker.MultipleLocator(tick_spacing))
+plt.gca().invert_yaxis()
 
 def draw(x,y,id):
 	if id == 0:
@@ -236,7 +241,7 @@ def SRT():
 
 def RR():
 	quantum = 1
-	quantum_counter =0
+	quantum_counter = 0
 	global processes, arrival_time, service_time, finish_time, avg_time, turnaround_time, processes_number, turnaround_mean, avg_mean
 	finish_time = [0, 0, 0, 0, 0]
 	turnaround_time = [0, 0, 0, 0, 0]
@@ -248,25 +253,23 @@ def RR():
 		process_list.append(Process(arrival, service))
 	timeline =  0
 	que = list()
-	p_index = 0
 	completed_processes = 0
 	que.append(process_list[0])
 	process_list[0].p_inQue = True
 	current_process = que[0]
 	def switch(index):
-		if que:
-			if len(que) <= index +1:
-				index = 0
-				return que[index]
-			else:
-				index += 1
-				print('length of que is %d index is %d' %(len(que), index))
-				return que[index]
-		else :
+		
+		if len(que) <= index +1:
+			index = 0
 			return que[index]
+		else:
+			index += 1
+			return que[index]
+
 	while(completed_processes < processes_number):
 
 		if current_process.p_service_time_temp == 0: #process completed
+			current_process.p_isComplete = True
 			for process in process_list: #check for arrived processes
 				if process.p_arrival_time <= timeline and process.p_inQue == False:
 					print('added %d' %process.p_arrival_time)
@@ -280,7 +283,18 @@ def RR():
 			completed_processes += 1
 			current_process.p_completion_time = timeline
 			if que:
-				current_process = switch(index)
+			# 	index = timeline % len(que)
+			# 	current_process = que[index]
+				current_time = current_process.p_arrival_time
+				for process in que: # if there is a greater element
+					if process.p_arrival_time > current_time:
+						current_process = que[que.index(process)]
+						break
+					current_process = que[0] #we are already at the bigger element
+				print('que is ')
+				for p in que:
+					print(p.p_arrival_time)
+				print('currnt process is  %d because last job completed index = %d' %(current_process.p_arrival_time, index))
 
 
 		if quantum_counter == quantum: #quantum expired
@@ -290,26 +304,59 @@ def RR():
 					process.p_inQue = True
 					print('added %d because quantum expired ' %process.p_arrival_time)
 			print('quantum expired')
-			if len(que) == 1:
+			if len(que) == 1 :
 				quantum_counter = 0
 				print('cant switch')
-			else:
-				index = que.index(current_process)
-				current_process = switch(index)
-				print('current process is %d' %current_process.p_arrival_time)
-				quantum_counter = 0
 
-		print('time is %d' %timeline)
+			else:
+				index = que.index(current_process)	
+				if que:
+					current_process = switch(index)
+				print('quantum expired, current process is %d index is %d' %(current_process.p_arrival_time, index))
+				quantum_counter = 0
+		if completed_processes == len(process_list):
+			break
+		# if current_process.p_service_time_temp == 0: #process completed
+		# 	current_process.p_isComplete = True
+		# 	for process in process_list: #check for arrived processes
+		# 		if process.p_arrival_time <= timeline and process.p_inQue == False:
+		# 			print('added %d' %process.p_arrival_time)
+		# 			que.append(process)
+		# 			process.p_hasArrived = True
+		# 			process.p_inQue = True
+		# 	print('%d is complete, removing from que' %current_process.p_arrival_time)
+		# 	index = que.index(current_process)
+		# 	que.remove(current_process)
+		# 	quantum_counter = 0
+		# 	completed_processes += 1
+		# 	current_process.p_completion_time = timeline
+		# 	if que:
+		# 		current_process = switch(index)
+		# 		print('que is ')
+		# 		for p in que:
+		# 			print(p.p_arrival_time)
+		# 		print('added %d because last job completed index = %d' %(current_process.p_arrival_time, index))
+
 		timeline += 1
-		quantum_counter += 1
-		current_process.p_service_time_temp -= 1
-		print('remaing time is %d' %current_process.p_service_time_temp)
-		x = [timeline-1,timeline]
+		x = [timeline-1 ,timeline]
 		y = [process_list.index(current_process)+1,process_list.index(current_process)+1]
 		draw(x,y,process_list.index(current_process))
+		print('time is %d' %timeline)
+		
+
+		quantum_counter += 1
+		current_process.p_service_time_temp -= 1
+		for process in process_list: #check for arrived processes
+			if process.p_arrival_time <= timeline and process.p_inQue == False:
+				que.append(process)
+				process.p_inQue = True
+				print('added %d to que because it arrived ' %process.p_arrival_time)
+				print('que is ')
+				for p in que: 
+					print(p.p_arrival_time)
+		print('remaining time is %d' %current_process.p_service_time_temp)
 
 
-				
 
 
 
@@ -317,8 +364,7 @@ def RR():
 	sum_turnaround = 0
 	sum_avg = 0
 	for process in process_list:
-		process.p_waiting_time = process.p_completion_time - process.p_arrival_time - process.p_service_time
-		process.p_turnaround = process.p_waiting_time + process.p_service_time
+		process.p_turnaround = process.p_completion_time - process.p_arrival_time
 		process.p_avg = round(float(process.p_completion_time / process.p_turnaround),2)
 		finish_time[i] = process.p_completion_time
 		turnaround_time[i] = process.p_turnaround
